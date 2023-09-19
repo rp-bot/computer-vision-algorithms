@@ -1,48 +1,48 @@
 #include <iostream>
-#include <fstream>
 #include <vector>
-#include <algorithm>
-
-float computeIntensity(unsigned char r, unsigned char g, unsigned char b) {
-    return 0.299f * r + 0.587f * g + 0.114f * b;
-}
-
-
+#include <fstream>
 
 int main()
 {
-    const std::string filePath = "002.raw";
+    // Dimensions of the 2D array
+    const int WIDTH = 3417;  // Change to your desired width
+    const int HEIGHT = 3417; // Change to your desired height
 
-    std::ifstream file(filePath, std::ios::binary);
+    // Create a 2D vector to hold the data
+    std::vector<std::vector<unsigned char>> data(HEIGHT, std::vector<unsigned char>(WIDTH));
 
-    if (!file.is_open())
+    // Open the RAW file for reading
+    std::ifstream inputFile("0001.raw", std::ios::binary);
+    if (!inputFile)
     {
-        std::cerr << "Failed to open the file!" << std::endl;
+        std::cerr << "Error opening input file." << std::endl;
         return 1;
     }
 
-    // Assuming you know the dimensions of the 2D array
-    const int rows = 3417; // example value
-    const int cols = 3417; // example value
-
-    // Create a 2D vector
-    std::vector<std::vector<char> > data(rows, std::vector<char>(cols));
-
-    for (int i = 0; i < rows; ++i)
+    // Read data from the RAW file into the 2D vector
+    for (int i = 0; i < HEIGHT; i++)
     {
-        for (int j = 0; j < cols; ++j)
-        {
-            char value;
-            file.read(&value, sizeof(char));
-            data[i][j] = value;
-        }
+        inputFile.read((char *)data[i].data(), WIDTH);
+    }
+    inputFile.close();
+
+    // Do any processing on the data if needed (this step is optional)
+
+    // Open another RAW file for writing
+    std::ofstream outputFile("output.raw", std::ios::binary);
+    if (!outputFile)
+    {
+        std::cerr << "Error opening output file." << std::endl;
+        return 1;
     }
 
-    file.close();
+    // Write the 2D vector data to the output RAW file
+    for (int i = 0; i < HEIGHT; i++)
+    {
+        outputFile.write((char *)data[i].data(), WIDTH);
+    }
+    outputFile.close();
 
-    // Now, you can access the data using data[i][j]
-    std::cout << data[3416][3416];
-    
-
+    std::cout << "Done!" << std::endl;
     return 0;
 }
