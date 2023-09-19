@@ -5,46 +5,45 @@
 #include <tuple>
 #include <stdio.h>
 
-// Adjust the return type and intermediate variables to int
-std::tuple<int, int, int> RGBtoHSV(unsigned char r, unsigned char g, unsigned char b)
+std::tuple<float, float, float> RGBtoHSV(unsigned char r, unsigned char g, unsigned char b)
 {
     float R = r / 255.0f;
     float G = g / 255.0f;
     float B = b / 255.0f;
 
-    float M = std::max(std::max(R, G), B);
-    float m = std::min(std::min(R, G), B);
-    float C = M - m;
+    float maximum = std::max(std::max(R, G), B);
+    float minimum = std::min(std::min(R, G), B);
+    float difference = maximum - minimum;
 
-    float H = 0;
-    if (C != 0)
+    float hue = 0;
+    if (difference != 0)
     {
-        if (M == R)
+        if (maximum == R)
         {
-            H = fmod((60.0f * ((G - B) / C) + 360.0f), 360.0f);
+            hue = fmod((60.0f * ((G - B) / difference) + 360.0f), 360.0f);
         }
-        else if (M == G)
+        else if (maximum == G)
         {
-            H = fmod((60.0f * ((B - R) / C) + 120.0f), 360.0f);
+            hue = fmod((60.0f * ((B - R) / difference) + 120.0f), 360.0f);
         }
-        else if (M == B)
+        else if (maximum == B)
         {
-            H = fmod((60.0f * ((R - G) / C) + 240.0f), 360.0f);
+            hue = fmod((60.0f * ((R - G) / difference) + 240.0f), 360.0f);
         }
     }
 
-    float S = (M == 0) ? 0 : (C / M);
-    float V = M;
+    float saturation = (maximum == 0) ? 0 : (difference / maximum);
+    float intensity = maximum;
 
-    return {H, S, V};
+    return {hue, saturation, intensity};
 }
 
 int main()
 {
     // Dimensions of the 2D array and channels
-    const int WIDTH = 1000;  // Change to your desired width
-    const int HEIGHT = 1000; // Change to your desired height
-    const int CHANNELS = 3;  // Assuming RGB channels
+    const int WIDTH = 1000;
+    const int HEIGHT = 1000;
+    const int CHANNELS = 3;
 
     // Create a 2D vector to hold the data
     std::vector<std::vector<unsigned char>> data(HEIGHT, std::vector<unsigned char>(WIDTH * CHANNELS));
@@ -67,18 +66,21 @@ int main()
     }
     fclose(inputFile);
 
-    // Do any processing on the data if needed (this step is optional)
+    // Convert the channel from (R,G,B) to (H,S,V) and then split the channels into its own images.
     for (int i = 0; i < HEIGHT; i++)
     {
         for (int j = 0, k = 0; j < WIDTH * CHANNELS; j += 3, k++)
         {
-            float H, S, V;
-            std::tie(H, S, V) = RGBtoHSV(data[i][j], data[i][j + 1], data[i][j + 2]);
-            H_data[i][k] = static_cast<unsigned char>(((H / 360.0f) * 254) + 1); // Rescaling H to fit in 8-bit char
-            S_data[i][k] = static_cast<unsigned char>(S * 255);
-            V_data[i][k] = static_cast<unsigned char>(V * 255);
+            float hue, saturation, intensity;
+            std::tie(hue, saturation, intensity) = RGBtoHSV(data[i][j], data[i][j + 1], data[i][j + 2]);
+            H_data[i][k] = static_cast<unsigned char>(((hue / 360.0f) * 254) + 1); // Rescaling hue to fit in 8-bit char
+            S_data[i][k] = static_cast<unsigned char>(saturation * 255);
+            V_data[i][k] = static_cast<unsigned char>(intensity * 255);
         }
     }
+
+
+    // Write the Hue data to H_output.raw
     FILE *H_outputFile = fopen("H_output.raw", "wb");
     for (int i = 0; i < HEIGHT; i++)
     {
