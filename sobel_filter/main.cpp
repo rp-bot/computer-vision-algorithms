@@ -1,48 +1,51 @@
 #include <iostream>
 #include <fstream>
 
-// Constants for image dimensions.
-const int WIDTH = 750;  // Change this based on your image width
-const int HEIGHT = 500; // Change this based on your image height
-bool rgb = true;
-typedef unsigned char uchar;
+// Constants representing the dimensions of the image.
+const int WIDTH = 500;       // Width of the image.
+const int HEIGHT = 500;      // Height of the image.
+bool rgb = true;             // Flag to determine if the image is in RGB or grayscale format.
+typedef unsigned char uchar; // Define a type for bytes.
 
+// Sobel operator in X direction.
 int Sx[3][3] = {
     {-1, 0, 1},
     {-2, 0, 2},
     {-1, 0, 1}};
 
+// Sobel operator in Y direction.
 int Sy[3][3] = {
     {-1, -2, -1},
     {0, 0, 0},
     {1, 2, 1}};
 
-// Horizontal 5x5 difference filter
-int vertical5x5[5][5] = {
+// Horizontal edge detection filter of size 5x5.
+int horizontal5x5[5][5] = {
     {-1, -2, 0, 2, 1},
     {-2, -4, 0, 4, 2},
     {-4, -8, 0, 8, 4},
     {-2, -4, 0, 4, 2},
     {-1, -2, 0, 2, 1}};
 
-// Vertical 5x5 difference filter
-int horizontal5x5[5][5] = {
+// Vertical edge detection filter of size 5x5.
+int vertical5x5[5][5] = {
     {-1, -2, -4, -2, -1},
     {-2, -4, -8, -4, -2},
     {0, 0, 0, 0, 0},
     {2, 4, 8, 4, 2},
     {1, 2, 4, 2, 1}};
 
-// Function to read a raw grayscale image into a 2D array.
+// Function to read a raw image file and store it in a 2D array.
+// If the image is RGB, it will be converted to grayscale.
 void readRaw(const std::string &filename, uchar img[HEIGHT][WIDTH])
 {
     std::ifstream file(filename, std::ios::binary);
-
     if (!file.is_open())
     {
         std::cerr << "Error opening file: " << filename << std::endl;
         exit(1);
     }
+
     if (rgb)
     {
         for (int i = 0; i < HEIGHT; ++i)
@@ -53,6 +56,7 @@ void readRaw(const std::string &filename, uchar img[HEIGHT][WIDTH])
                 unsigned char g = file.get();
                 unsigned char b = file.get();
 
+                // Convert RGB to grayscale.
                 img[i][j] = (r + g + b) / 3;
             }
         }
@@ -60,117 +64,104 @@ void readRaw(const std::string &filename, uchar img[HEIGHT][WIDTH])
     else
     {
         for (int i = 0; i < HEIGHT; ++i)
-        {
             for (int j = 0; j < WIDTH; ++j)
-            {
                 img[i][j] = file.get();
-            }
-        }
     }
 
     file.close();
 }
+
+// Function to apply a 3x3 filter to the image.
 void convolve3x3(uchar img[HEIGHT][WIDTH], int filter[3][3], uchar result[HEIGHT][WIDTH])
 {
+    // Iterate over the image skipping border pixels.
     for (int y = 1; y < HEIGHT - 1; ++y)
     {
         for (int x = 1; x < WIDTH - 1; ++x)
         {
             int sum = 0;
+
+            // Apply the filter.
             for (int j = -1; j <= 1; ++j)
-            {
                 for (int i = -1; i <= 1; ++i)
-                {
                     sum += img[y + j][x + i] * filter[j + 1][i + 1];
-                }
-            }
 
-            // Adjust base value to 128
-            sum += 128;
-
-            // Clip values
-            sum = sum < 0 ? 0 : sum;
-            sum = sum > 255 ? 255 : sum;
-
-            result[y][x] = sum;
+            // Normalize the result and ensure it's within the byte range.
+            int sum_normalized = 128 - (sum / 8);
+            // Clip values to ensure they lie between 0 and 255.
+            sum_normalized = sum_normalized < 0 ? 0 : sum_normalized;
+            sum_normalized = sum_normalized > 255 ? 255 : sum_normalized;
+            result[y][x] = sum_normalized;
         }
     }
 }
 
+// Function to apply a 5x5 filter to the image.
 void convolve5x5(uchar img[HEIGHT][WIDTH], int filter[5][5], uchar result[HEIGHT][WIDTH])
 {
+    // Iterate over the image skipping the outermost pixels.
     for (int y = 2; y < HEIGHT - 2; ++y)
     {
         for (int x = 2; x < WIDTH - 2; ++x)
         {
             int sum = 0;
+
+            // Apply the filter.
             for (int j = -2; j <= 2; ++j)
-            {
                 for (int i = -2; i <= 2; ++i)
-                {
                     sum += img[y + j][x + i] * filter[j + 2][i + 2];
-                }
-            }
 
-            // Adjust base value to 128
-            sum += 128;
-
-            // Clip values
-            sum = sum < 0 ? 0 : sum;
-            sum = sum > 255 ? 255 : sum;
-
-            result[y][x] = sum;
+            // Normalize the result and ensure it's within the byte range.
+            int sum_normalized = 128 - (sum / 50);
+            // Clip values to ensure they lie between 0 and 255.
+            sum_normalized = sum_normalized < 0 ? 0 : sum_normalized;
+            sum_normalized = sum_normalized > 255 ? 255 : sum_normalized;
+            result[y][x] = sum_normalized;
         }
     }
 }
 
-// Function to write a 2D array to a raw grayscale image file.
+// Function to save the 2D array as a raw grayscale image file.
 void writeRaw(const std::string &filename, const uchar img[HEIGHT][WIDTH])
 {
     std::ofstream file(filename, std::ios::binary);
-
     if (!file.is_open())
     {
         std::cerr << "Error opening file for writing: " << filename << std::endl;
         exit(1);
     }
 
+    // Write the grayscale data to the file.
     for (int i = 0; i < HEIGHT; ++i)
-    {
         for (int j = 0; j < WIDTH; ++j)
-        {
-            file.put(img[i][j]); // Write one byte to the file.
-        }
-    }
+            file.put(img[i][j]);
 
     file.close();
 }
 
 int main()
 {
-    // Define a 2D array to hold the grayscale image.
+    // Define arrays to hold the original and processed images.
     uchar img[HEIGHT][WIDTH];
     uchar result_3x3_X[HEIGHT][WIDTH];
     uchar result_3x3_Y[HEIGHT][WIDTH];
     uchar result_5x5_X[HEIGHT][WIDTH];
     uchar result_5x5_Y[HEIGHT][WIDTH];
-    // Read the raw grayscale image.
-    // readRaw("india_flag.raw", img);
-    // rgb = false;
-    readRaw("unesco-1.raw", img);
 
-    // You can now process the img as required...
+    // Read the raw image.
+    readRaw("india_flag.raw", img);
+
+    // Apply the Sobel and 5x5 edge detection filters.
     convolve3x3(img, Sx, result_3x3_X);
     convolve3x3(img, Sy, result_3x3_Y);
     convolve5x5(img, horizontal5x5, result_5x5_X);
     convolve5x5(img, vertical5x5, result_5x5_Y);
-    // Write the processed image back to a raw file.
-    writeRaw("out_unesco-1.raw", img);
-    writeRaw("out_unesco-13x3_Sx.raw", result_3x3_X);
-    writeRaw("out_unesco-13x3_Sy.raw", result_3x3_Y);
-    writeRaw("out_unesco-15x5_x.raw", result_5x5_X);
-    writeRaw("out_unesco-15x5_y.raw", result_5x5_Y);
-    // writeRaw("output_india_flag.raw", img);
+
+    // Save the processed images.
+    writeRaw("out_india_flag_3x3_Sx.raw", result_3x3_X);
+    writeRaw("out_india_flag_3x3_Sy.raw", result_3x3_Y);
+    writeRaw("out_india_flag_5x5_x.raw", result_5x5_X);
+    writeRaw("out_india_flag_5x5_y.raw", result_5x5_Y);
 
     return 0;
 }
