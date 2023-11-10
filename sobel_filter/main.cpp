@@ -2,7 +2,7 @@
 #include <fstream>
 
 // Constants representing the dimensions of the image.
-const int WIDTH = 500;       // Width of the image.
+const int WIDTH = 750;       // Width of the image.
 const int HEIGHT = 500;      // Height of the image.
 bool rgb = true;             // Flag to determine if the image is in RGB or grayscale format.
 typedef unsigned char uchar; // Define a type for bytes.
@@ -149,7 +149,8 @@ int main()
     uchar result_5x5_Y[HEIGHT][WIDTH];
 
     // Read the raw image.
-    readRaw("india_flag.raw", img);
+    rgb = false;
+    readRaw("unesco-1.raw", img);
 
     // Apply the Sobel and 5x5 edge detection filters.
     convolve3x3(img, Sx, result_3x3_X);
@@ -158,7 +159,7 @@ int main()
     convolve5x5(img, vertical5x5, result_5x5_Y);
 
     // Save the processed images.
-    writeRaw("out_india_flag_3x3_Sx.raw", result_3x3_X);
+    writeRaw("unesco-1_out.raw", img);
     writeRaw("out_india_flag_3x3_Sy.raw", result_3x3_Y);
     writeRaw("out_india_flag_5x5_x.raw", result_5x5_X);
     writeRaw("out_india_flag_5x5_y.raw", result_5x5_Y);
